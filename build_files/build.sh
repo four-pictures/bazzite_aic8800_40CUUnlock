@@ -8,15 +8,16 @@ echo "=== BC-250 40CU Unlock Patch Tooling ==="
 KERNEL_VERSION=$(rpm -q kernel --queryformat '%{VERSION}-%{RELEASE}.%{ARCH}\n' | head -n 1)
 rpm-ostree install gcc make git "kernel-devel-${KERNEL_VERSION}"
 
-# 2. 40CU解放スクリプトのクローンとハードウェアチェックの無効化
+# 2. 40CU解放スクリプトのクローン
 cd /tmp
 git clone https://github.com/duggasco/bc250-40cu-unlock.git
 cd bc250-40cu-unlock
 
-# ★【ここが修正のキモ】クラウド上に実機がないため、PCI IDのチェック（exit 1）を無効化（削除）します
-sed -i 's/echo -e "\[!\] No BC-250.*exit 1//g' ./scripts/bc250-enable-40cu.sh
+# ★【修正のキモ】実機チェック関数を中身ごと「何もしない（常に成功）」ように書き換えます
+# スクリプト内の check_device 関数を完全に上書きして無効化します
+sed -i '/check_device() {/,/^}/c\check_device() { return 0; }' ./scripts/bc250-enable-40cu.sh
 
-# スクリプト内のビルドコマンドを実行（実機がなくても強制コンパイルされます）
+# スクリプト内のビルドコマンドを実行（実機チェックをスルーして強制コンパイル）
 ./scripts/bc250-enable-40cu.sh build
 
 # 3. 生成されたドライバーをシステム側の正式な場所に配置
