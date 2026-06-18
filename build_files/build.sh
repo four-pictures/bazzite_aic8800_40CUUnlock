@@ -13,19 +13,20 @@ cd /tmp
 git clone https://github.com/duggasco/bc250-40cu-unlock.git
 cd bc250-40cu-unlock
 
-# ★【修正のキモ】実機チェック関数を中身ごと「何もしない（常に成功）」ように書き換えます
-# スクリプト内の check_device 関数を完全に上書きして無効化します
-sed -i '/check_device() {/,/^}/c\check_device() { return 0; }' ./scripts/bc250-enable-40cu.sh
+# 3. パッチの適用と手動コンパイル（バグるスクリプトは一切使いません）
+# カーネルのソースコードツリーのふりをして、直接 make を叩きます
+cd patch
+# 本来スクリプトが裏側で実行しているコンパイルコマンドを直接実行
+make -C "/lib/modules/${KERNEL_VERSION}/build" M="$(pwd)" -j$(nproc) modules
 
-# スクリプト内のビルドコマンドを実行（実機チェックをスルーして強制コンパイル）
-./scripts/bc250-enable-40cu.sh build
-
-# 3. 生成されたドライバーをシステム側の正式な場所に配置
+# 4. 生成されたドライバー（amdgpu.ko）をシステム側の正式な場所に配置
 TARGET_DIR="/usr/lib/modules/${KERNEL_VERSION}/extra"
 mkdir -p "${TARGET_DIR}"
 cp amdgpu.ko "${TARGET_DIR}/"
 
-# 4. 一時的に入れたビルドツールを削除
+# 5. 一時的に入れたビルドツールを削除してクリーンアップ
+cd /tmp
+rm -rf /tmp/bc250-40cu-unlock
 rpm-ostree uninstall gcc make git "kernel-devel-${KERNEL_VERSION}"
 
 echo "=== BC-250 Patch Integration Complete ==="
