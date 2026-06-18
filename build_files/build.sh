@@ -1,27 +1,29 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-set -ouex pipefail
+set -oeux pipefail
 
-# Copy the contents of system_files/ of the git repo to /
-cp -avf "/ctx/system_files"/. /
+echo "=== BC-250 40CU Unlock Patch Tooling ==="
 
-### Install packages
+# 1. ビルドに必要なパッケージを一時的にシステムへ導入 (コンパイル時のみ使用)
+# ※現在のカーネルバージョンに完全一致する kernel-devel を自動取得します
+KERNEL_VERSION=$(rpm -q kernel --queryformat '%{VERSION}-%{RELEASE}.%{ARCH}\n' | head -n 1)
+rpm-ostree install gcc make git "kernel-devel-${KERNEL_VERSION}"
 
-# Packages can be installed from any enabled yum repo on the image.
-# RPMfusion repos are available by default in ublue main images
-# List of rpmfusion packages can be found here:
-# https://mirrors.rpmfusion.org/mirrorlist?path=free/fedora/updates/43/x86_64/repoview/index.html&protocol=https&redirect=1
+# 2. 40CU解放スクリプトのクローンとコンパイル
+cd /tmp
+git clone https://github.com
+cd bc250-40cu-unlock
 
-# this installs a package from fedora repos
-dnf5 install -y tmux
+# スクリプト内のビルドコマンドを実行してカーネルモジュール (.ko) を生成
+./scripts/bc250-enable-40cu.sh build
 
-# Use a COPR Example:
-#
-# dnf5 -y copr enable ublue-os/staging
-# dnf5 -y install package
-# Disable COPRs so they don't end up enabled on the final image:
-# dnf5 -y copr disable ublue-os/staging
+# 3. 生成されたドライバーをシステム側の正式な場所に配置
+# (Bazzite本体の有効化スクリプトの挙動をイメージビルド用にエミュレート)
+TARGET_DIR="/usr/lib/modules/${KERNEL_VERSION}/extra"
+mkdir -p "${TARGET_DIR}"
+cp amdgpu.ko "${TARGET_DIR}/"
 
-#### Example for enabling a System Unit File
+# 4. 一時的に入れたビルドツールを削除してイメージを軽量化
+rpm-ostree uninstall gcc make git "kernel-devel-${KERNEL_VERSION}"
 
-systemctl enable podman.socket
+echo "=== BC-250 Patch Integration Complete ==="
