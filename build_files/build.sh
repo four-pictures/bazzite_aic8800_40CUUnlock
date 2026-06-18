@@ -11,7 +11,7 @@ rpm-ostree install gcc make git "kernel-devel-${KERNEL_VERSION}"
 
 # 2. 40CU解放スクリプトのクローンとコンパイル
 cd /tmp
-git clone https://github.com
+git clone https://github.com/duggasco/bc250-40cu-unlock
 cd bc250-40cu-unlock
 
 # スクリプト内のビルドコマンドを実行してカーネルモジュール (.ko) を生成
