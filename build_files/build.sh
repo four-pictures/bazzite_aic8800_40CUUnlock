@@ -13,12 +13,12 @@ cd /tmp
 git clone https://github.com/duggasco/bc250-40cu-unlock.git
 cd bc250-40cu-unlock
 
-# ★【最重要】スクリプト内にある「実機チェックで強制終了（exit 1）する3行」を完全にピンポイントで消し去ります
-sed -i '/No BC-250/d' ./scripts/bc250-enable-40cu.sh
-sed -i '/This patch is BC-250 specific/d' ./scripts/bc250-enable-40cu.sh
-sed -i '/exit 1/d' ./scripts/bc250-enable-40cu.sh
+# ★【ここが最終解決のポイント】
+# スクリプトの1番最初（2行目）に「実機チェック関数（check_device）」を
+# 常に成功（中身を空にして即終了）させるコードを強制挿入して、元の重いチェック処理を完全に黙らせます。
+sed -i '2i check_device() { return 0; }' ./scripts/bc250-enable-40cu.sh
 
-# 3. 公式スクリプトを走らせて自動ビルド（実機チェックをスルーしてカーネルソースの展開〜ビルドまで完遂させます）
+# 3. 公式スクリプトを走らせて自動ビルド（実機チェックをスルーしてカーネルソースへのパッチ適用〜ビルドまで完遂）
 ./scripts/bc250-enable-40cu.sh build
 
 # 4. 生成されたドライバー（amdgpu.ko）をシステム側の正式な場所に配置
